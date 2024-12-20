@@ -5,7 +5,7 @@ const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 
 const app = express();
-const PORT = process.env.PORT || 40001;
+
 
 // Middleware
 app.use(bodyParser.json());
@@ -128,7 +128,5 @@ app.delete('/appointments/:id', async (req, res) => {
     }
 });
 
-// Start the server
-app.listen(PORT, () => {
-    console.log(`Appointment Scheduling Service is running on port ${PORT}`);
-});
+
+module.exports = app;

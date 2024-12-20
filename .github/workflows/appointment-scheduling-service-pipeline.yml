@@ -1,0 +1,102 @@
+
+name: CI/CD Pipeline for Notification Service
+
+on:
+  push:
+    branches:
+      - main  # Trigger the workflow on push to the main branch
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout the Code
+    - name: Checkout Code
+      uses: actions/checkout@v3
+   
+    # Step 2: Set Up Node.js
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+          node-version: '16' # Ensure the Node.js version matches your project
+
+    # Step 3: Install Dependencies
+    - name: Install Dependencies
+      run: npm install
+
+    # Step 4: Run Tests
+    - name: Run Tests
+      run: npm test
+
+    # Step 5: Set Up Google Cloud CLI
+    - name: Authenticate with Google Cloud
+      uses: google-github-actions/auth@v1
+      with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    # Step 6: Set Up Google Cloud CLI
+    - name: Set up Google Cloud CLI
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+          project_id: healthsync-project-445302
+
+    # Step 7: Authenticate Docker with GCR
+    - name: Authenticate Docker
+      run: gcloud auth configure-docker gcr.io
+
+    # Step 8: Build and Push Docker Image
+    - name: Build and Push Docker Image
+      run: |
+        docker buildx build --platform linux/amd64 -t gcr.io/healthsync-project-445302/appointment-scheduling-service:${{ github.sha }} .
+        docker push gcr.io/healthsync-project-445302/appointment-scheduling-service:${{ github.sha }}
+
+    - name: Install Gcloud components
+      run: |
+          gcloud components install gke-gcloud-auth-plugin
+
+    - name: Set up Kubernetes Credentials
+      run: |
+          gcloud container clusters get-credentials healthsync-cluster --zone us-east1 --project healthsync-project-445302
+
+
+    # Step 9: Deploy Green Deployment
+    - name: Deploy Green Deployment
+      run: |
+        sed -i "s|<IMAGE>|gcr.io/healthsync-project-445302/appointment-scheduling-service:${{ github.sha }}|g" appointment-scheduling-service-green.yaml
+        kubectl apply -f appointment-scheduling-service-green.yaml
+        sed -i "s|<IMAGE>|gcr.io/healthsync-project-445302/appointment-scheduling-service:${{ github.sha }}|g" appointment-scheduling-service-blue.yaml
+        kubectl apply -f appointment-scheduling-service-blue.yaml
+
+    # Step 10: Validate Green Deployment
+    - name: Validate Green Deployment
+      run: |
+        kubectl rollout status deployment/appointment-scheduling-service-green
+
+    # Step 11: Switch Service to Green Deployment
+    - name: Switch Service to Green Deployment
+      run: |
+        kubectl patch service appointment-scheduling-service -p '{"spec":{"selector":{"app":"appointment-scheduling-service-green"}}}'
+
+    # Step 12: Scale Down Blue Deployment
+    - name: Scale Down Blue Deployment
+      run: |
+        kubectl scale deployment appointment-scheduling-service-blue --replicas=0
+
+    # Step 14: Keep Blue Deployment for Rollback
+    - name: Keep Blue Deployment
+      run: |
+        echo "Blue deployment scaled down and retained for rollback."
+
+    # Step 15: Rollback to Blue Deployment (if Green Fails)
+    - name: Rollback to Blue Deployment
+      if: failure()
+      run: |
+        kubectl patch service appointment-scheduling-service -p '{"spec":{"selector":{"app":"appointment-scheduling-service-blue"}}}'
+        kubectl scale deployment appointment-scheduling-service-blue --replicas=1
+
+    # Step 16: Cleanup Blue Deployment After Success
+    - name: Cleanup Blue Deployment (Optional)
+      if: success()
+      run: |
+        kubectl delete deployment appointment-scheduling-service-blue
