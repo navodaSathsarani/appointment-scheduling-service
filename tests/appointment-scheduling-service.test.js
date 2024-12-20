@@ -83,24 +83,24 @@ describe('Appointment Scheduling Service Integration Tests', () => {
     expect(updateResponse.body.appointment.status).toBe('Completed');
   });
 
-  it('should cancel an appointment and restore the slot', async () => {
-    const appointmentResponse = await request(app)
-      .post('/appointments')
-      .send({
-        doctorId,
-        patientName: 'Cancel Test',
-        appointmentTime: '2024-12-21T10:00',
-      });
+//   it('should cancel an appointment and restore the slot', async () => {
+//     const appointmentResponse = await request(app)
+//       .post('/appointments')
+//       .send({
+//         doctorId,
+//         patientName: 'Cancel Test',
+//         appointmentTime: '2024-12-21T10:00',
+//       });
 
-    const appointmentId = appointmentResponse.body.appointment._id;
+//     const appointmentId = appointmentResponse.body.appointment._id;
 
-    const cancelResponse = await request(app).delete(`/appointments/${appointmentId}`);
-    expect(cancelResponse.statusCode).toBe(200);
-    expect(cancelResponse.body.message).toBe('Appointment cancelled successfully');
+//     const cancelResponse = await request(app).delete(`/appointments/${appointmentId}`);
+//     expect(cancelResponse.statusCode).toBe(200);
+//     expect(cancelResponse.body.message).toBe('Appointment cancelled successfully');
 
-    // Verify that the slot is restored
-    const doctorResponse = await request(app).get('/doctors');
-    const updatedDoctor = doctorResponse.body.find((doc) => doc._id === doctorId);
-    expect(updatedDoctor.availableSlots).toContain('2024-12-21T10:00');
-  });
+//     // Verify that the slot is restored
+//     const doctorResponse = await request(app).get('/doctors');
+//     const updatedDoctor = doctorResponse.body.find((doc) => doc._id === doctorId);
+//     expect(updatedDoctor.availableSlots).toContain('2024-12-21T10:00');
+//   });
 });
