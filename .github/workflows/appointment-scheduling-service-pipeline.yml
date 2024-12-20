@@ -67,6 +67,7 @@ jobs:
         kubectl apply -f appointment-scheduling-service-green.yaml
         sed -i "s|<IMAGE>|gcr.io/healthsync-project-445302/appointment-scheduling-service:${{ github.sha }}|g" appointment-scheduling-service-blue.yaml
         kubectl apply -f appointment-scheduling-service-blue.yaml
+        kubectl apply -f appointment-scheduling-service.yaml
 
     # Step 10: Validate Green Deployment
     - name: Validate Green Deployment
