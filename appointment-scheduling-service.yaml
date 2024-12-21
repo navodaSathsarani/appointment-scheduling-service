@@ -7,6 +7,6 @@ spec:
     app: appointment-scheduling-service-green  # Initially set to green
   ports:
   - protocol: TCP
-    port: 4001
+    port: 82
     targetPort: 40001
   type: ClusterIP
