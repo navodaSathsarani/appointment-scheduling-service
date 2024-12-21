@@ -1,6 +1,6 @@
 const app = require('./app');
 
-const PORT = process.env.PORT || 40001;
+const PORT = process.env.PORT || 4001;
 
 app.listen(PORT, () => {
   console.log(`Patient Record Service is running on port ${PORT}`);

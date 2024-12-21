@@ -8,5 +8,5 @@ spec:
   ports:
   - protocol: TCP
     port: 82
-    targetPort: 40001
+    targetPort: 4001
   type: ClusterIP
