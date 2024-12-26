@@ -35,11 +35,18 @@ router.use('/unhealthy', (req, res) => {
 // Liveness Check
 router.use('/healthcheck', (req, res, next) => {
     if (healthy) {
-        next();
+        res.status(200).json({ status: 'healthy' });
     } else {
-        next(new Error('unhealthy'));
+        next(new Error('Service is unhealthy'));
     }
 });
+
+// Readiness Check
+router.use('/readiness', (req, res) => {
+    res.status(200).json({ ready: true });
+});
+// Routes
+
 
 // Readiness Check
 router.use('/readiness', (req, res) => {

@@ -24,8 +24,18 @@ spec:
             memory: "64Mi"
         ports:
         - containerPort: 4001
-        livenessProbe: null
-        readinessProbe: null
+        readinessProbe:
+          httpGet:
+            path: /api/v1/appointment-service/readiness
+            port: 4001
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /api/v1/appointment-service/healthcheck
+            port: 4001
+          initialDelaySeconds: 10
+          periodSeconds: 5
         env:
         - name: MONGO_URI
           value: "mongodb+srv://navodasathsarani:chQf3ctN1Xwx7H6s@health-sync-mongo-db.okigg.mongodb.net/health-db?retryWrites=true&w=majority&appName=health-sync-mongo-db"
