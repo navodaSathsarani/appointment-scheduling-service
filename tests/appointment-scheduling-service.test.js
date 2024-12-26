@@ -1,69 +1,85 @@
-const request = require('supertest');
-const mongoose = require('mongoose');
-const app = require('../server');
 
-describe('Appointment Scheduling Service Tests', () => {
+const request = require('supertest');
+const express = require('express');
+const mongoose = require('mongoose');
+const appointmentRoutes = require('../app'); // Adjust path based on your directory structure
+
+const app = express();
+app.use(express.json());
+app.use('/api/v1/appointment-service', appointmentRoutes);
+
 beforeAll(async () => {
     // Connect to a test MongoDB database
     const TEST_DB_URI = "mongodb+srv://navodasathsarani:chQf3ctN1Xwx7H6s@health-sync-mongo-db.okigg.mongodb.net/health-db?retryWrites=true&w=majority&appName=health-sync-mongo-db";
     await mongoose.connect(TEST_DB_URI, { });
 });
 
-    afterAll(async () => {
-        await mongoose.connection.close();
-    });
+afterAll(async () => {
+    await mongoose.connection.close();
+});
 
-    jest.setTimeout(10000);
+describe('Appointment API Endpoints', () => {
+  let createdDoctorId;
+  let createdAppointmentId;
 
-    it('should add a new doctor', async () => {
-        const response = await request(app)
-            .post('/api/v1/appointment-service/doctors')
-            .send({ name: 'Dr. Strange', specialization: 'Magic', availableSlots: ['2023-12-01T10:00'] });
+  test('POST /api/v1/appointment-service/doctors - Add a new doctor', async () => {
+      const response = await request(app)
+          .post('/api/v1/appointment-service/doctors')
+          .send({
+              name: 'Dr. Strange',
+              specialization: 'Magic',
+              availableSlots: ['2023-12-01T10:00', '2023-12-01T11:00']
+          });
 
-        console.log('Add Doctor Response:', response.body); // Debugging log
-        expect(response.statusCode).toBe(201);
-        expect(response.body.doctor.name).toBe('Dr. Strange');
-    });
+      expect(response.statusCode).toBe(201);
+      expect(response.body).toHaveProperty('message', 'Doctor added successfully');
+      expect(response.body.doctor).toHaveProperty('_id');
+      expect(response.body.doctor.name).toBe('Dr. Strange');
+      createdDoctorId = response.body.doctor._id; // Save doctor ID for later tests
+  });
 
-    it('should schedule an appointment', async () => {
-        const doctorResponse = await request(app)
-            .post('/api/v1/appointment-service/doctors')
-            .send({ name: 'Dr. Who', specialization: 'Time Travel', availableSlots: ['2023-12-01T12:00'] });
+  test('POST /api/v1/appointment-service/appointments - Schedule an appointment', async () => {
+      const response = await request(app)
+          .post('/api/v1/appointment-service/appointments')
+          .send({
+              doctorId: createdDoctorId,
+              patientName: 'John Doe',
+              appointmentTime: '2023-12-01T10:00'
+          });
 
-        console.log('Doctor Response:', doctorResponse.body); // Debugging log
+      expect(response.statusCode).toBe(201);
+      expect(response.body).toHaveProperty('message', 'Appointment scheduled successfully');
+      expect(response.body.appointment).toHaveProperty('_id');
+      expect(response.body.appointment.patientName).toBe('John Doe');
+      createdAppointmentId = response.body.appointment._id; // Save appointment ID for later tests
+  });
 
-        const doctorId = doctorResponse.body?.doctor?._id;
-        expect(doctorId).toBeDefined(); // Ensure doctor ID is available
+  test('GET /api/v1/appointment-service/appointments - Get all appointments', async () => {
+      const response = await request(app).get('/api/v1/appointment-service/appointments');
 
-        const response = await request(app)
-            .post('/api/v1/appointment-service/appointments')
-            .send({ doctorId, patientName: 'John Doe', appointmentTime: '2023-12-01T12:00' });
+      expect(response.statusCode).toBe(200);
+      expect(Array.isArray(response.body)).toBe(true);
+      expect(response.body.length).toBeGreaterThan(0);
+  });
 
-        console.log('Schedule Appointment Response:', response.body); // Debugging log
-        expect(response.statusCode).toBe(201);
-        expect(response.body.appointment.patientName).toBe('John Doe');
-    });
+  
 
-    it('should cancel an appointment', async () => {
-        const doctorResponse = await request(app)
-            .post('/api/v1/appointment-service/doctors')
-            .send({ name: 'Dr. Watson', specialization: 'Investigation', availableSlots: ['2023-12-02T10:00'] });
+  test('PUT /api/v1/appointment-service/appointments/:id - Update an appointment', async () => {
+      const response = await request(app)
+          .put(`/api/v1/appointment-service/appointments/${createdAppointmentId}`)
+          .send({
+              appointmentTime: '2023-12-01T11:00'
+          });
 
-        const doctorId = doctorResponse.body?.doctor?._id;
-        expect(doctorId).toBeDefined(); // Ensure doctor ID is available
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toHaveProperty('message', 'Appointment updated successfully');
+      expect(response.body.appointment).toHaveProperty('appointmentTime', '2023-12-01T11:00');
+  });
 
-        const appointmentResponse = await request(app)
-            .post('/api/v1/appointment-service/appointments')
-            .send({ doctorId, patientName: 'Jane Doe', appointmentTime: '2023-12-02T10:00' });
+  test('DELETE /api/v1/appointment-service/appointments/:id - Cancel an appointment', async () => {
+      const response = await request(app).delete(`/api/v1/appointment-service/appointments/${createdAppointmentId}`);
 
-        const appointmentId = appointmentResponse.body?.appointment?._id;
-        expect(appointmentId).toBeDefined(); // Ensure appointment ID is available
-
-        const response = await request(app)
-            .delete(`/api/v1/appointment-service/appointments/${appointmentId}`);
-
-        console.log('Cancel Appointment Response:', response.body); // Debugging log
-        expect(response.statusCode).toBe(200);
-        expect(response.body.message).toBe('Appointment cancelled successfully');
-    });
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toHaveProperty('message', 'Appointment cancelled successfully');
+  });
 });

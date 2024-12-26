@@ -1,13 +1,11 @@
+
 const express = require('express');
 const mongoose = require('mongoose');
-const healthCheck = require('express-healthcheck');
-
-const router = express.Router();
-
-// MongoDB Connection
+const bodyParser = require('body-parser');
 mongoose.connect('mongodb+srv://navodasathsarani:chQf3ctN1Xwx7H6s@health-sync-mongo-db.okigg.mongodb.net/health-db?retryWrites=true&w=majority&appName=health-sync-mongo-db', {
-   
-}).then(() => console.log('Connected to MongoDB')).catch(err => console.error('MongoDB connection error:', err));
+}).then(() => console.log('Connected to MongoDB server')).catch(err => console.error('MongoDB connection error:', err));
+const router = express.Router();
+router.use(bodyParser.json());
 
 // Schemas and Models
 const doctorSchema = new mongoose.Schema({
@@ -26,16 +24,22 @@ const appointmentSchema = new mongoose.Schema({
 const Doctor = mongoose.model('Doctor', doctorSchema);
 const Appointment = mongoose.model('Appointment', appointmentSchema);
 
-// Health Check Routes
 let healthy = true;
+
+// Set unhealthy status
 router.use('/unhealthy', (req, res) => {
     healthy = false;
     res.status(200).json({ healthy });
 });
+
+// Liveness Check
 router.use('/healthcheck', (req, res, next) => {
-    if (healthy) next();
-    else next(new Error('unhealthy'));
-}, healthCheck());
+    if (healthy) {
+        next();
+    } else {
+        next(new Error('unhealthy'));
+    }
+});
 
 // Readiness Check
 router.use('/readiness', (req, res) => {
