@@ -3,14 +3,11 @@ const mongoose = require('mongoose');
 const app = require('../server');
 
 describe('Appointment Scheduling Service Tests', () => {
-    beforeAll(async () => {
-        // Ensure MongoDB is connected
-        if (!process.env.MONGO_URI) {
-            throw new Error('MONGO_URI environment variable is not set');
-        }
-        await mongoose.connect("mongodb+srv://navodasathsarani:chQf3ctN1Xwx7H6s@health-sync-mongo-db.okigg.mongodb.net/health-db?retryWrites=true&w=majority&appName=health-sync-mongo-db"
-, { });
-    });
+beforeAll(async () => {
+    // Connect to a test MongoDB database
+    const TEST_DB_URI = "mongodb+srv://navodasathsarani:chQf3ctN1Xwx7H6s@health-sync-mongo-db.okigg.mongodb.net/health-db?retryWrites=true&w=majority&appName=health-sync-mongo-db";
+    await mongoose.connect(TEST_DB_URI, { });
+});
 
     afterAll(async () => {
         await mongoose.connection.close();
