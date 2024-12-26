@@ -17,6 +17,8 @@ spec:
         image: gcr.io/healthsync-project-445302/appointment-scheduling-service:latest
         ports:
         - containerPort: 4001
+        livenessProbe: null
+        readinessProbe: null
         env:
         - name: MONGO_URI
           value: "mongodb+srv://navodasathsarani:chQf3ctN1Xwx7H6s@health-sync-mongo-db.okigg.mongodb.net/health-db?retryWrites=true&w=majority&appName=health-sync-mongo-db"
