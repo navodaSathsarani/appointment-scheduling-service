@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: appointment-scheduling-service
-        image: gcr.io/healthsync-project-445302/patient-record-service
+        image: gcr.io/healthsync-project-445302/appointment-scheduling-service:latest
         ports:
         - containerPort: 4001
         env:
