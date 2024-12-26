@@ -1,42 +1,51 @@
-// Appointment Scheduling Service
-
 const express = require('express');
-const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
+const healthCheck = require('express-healthcheck');
 
-const app = express();
-
-
-// Middleware
-app.use(bodyParser.json());
+const router = express.Router();
 
 // MongoDB Connection
-mongoose.connect('mongodb+srv://navodasathsarani:chQf3ctN1Xwx7H6s@health-sync-mongo-db.okigg.mongodb.net/health-db?retryWrites=true&w=majority&appName=health-sync-mongo-db', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
+mongoose.connect(process.env.MONGO_URI, {
+   
 }).then(() => console.log('Connected to MongoDB')).catch(err => console.error('MongoDB connection error:', err));
 
-// Define Doctor and Appointment Schemas and Models
+// Schemas and Models
 const doctorSchema = new mongoose.Schema({
     name: { type: String, required: true },
     specialization: { type: String, required: true },
-    availableSlots: { type: [String], required: true } // Format: ['2023-12-01T10:00', '2023-12-01T11:00']
+    availableSlots: { type: [String], required: true }, // Format: ['2023-12-01T10:00', '2023-12-01T11:00']
 });
 
 const appointmentSchema = new mongoose.Schema({
     doctorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Doctor', required: true },
     patientName: { type: String, required: true },
     appointmentTime: { type: String, required: true }, // ISO format
-    status: { type: String, enum: ['Scheduled', 'Completed', 'Cancelled'], default: 'Scheduled' }
+    status: { type: String, enum: ['Scheduled', 'Completed', 'Cancelled'], default: 'Scheduled' },
 });
 
 const Doctor = mongoose.model('Doctor', doctorSchema);
 const Appointment = mongoose.model('Appointment', appointmentSchema);
 
+// Health Check Routes
+let healthy = true;
+router.use('/unhealthy', (req, res) => {
+    healthy = false;
+    res.status(200).json({ healthy });
+});
+router.use('/healthcheck', (req, res, next) => {
+    if (healthy) next();
+    else next(new Error('unhealthy'));
+}, healthCheck());
+
+// Readiness Check
+router.use('/readiness', (req, res) => {
+    res.status(200).json({ ready: true });
+});
+
 // Routes
 
 // Add a new doctor
-app.post('/doctors', async (req, res) => {
+router.post('/doctors', async (req, res) => {
     try {
         const doctor = new Doctor(req.body);
         await doctor.save();
@@ -47,7 +56,7 @@ app.post('/doctors', async (req, res) => {
 });
 
 // Get all doctors
-app.get('/doctors', async (req, res) => {
+router.get('/doctors', async (req, res) => {
     try {
         const doctors = await Doctor.find();
         res.status(200).json(doctors);
@@ -57,7 +66,7 @@ app.get('/doctors', async (req, res) => {
 });
 
 // Schedule an appointment
-app.post('/appointments', async (req, res) => {
+router.post('/appointments', async (req, res) => {
     try {
         const { doctorId, patientName, appointmentTime } = req.body;
         const doctor = await Doctor.findById(doctorId);
@@ -70,11 +79,9 @@ app.post('/appointments', async (req, res) => {
             return res.status(400).json({ message: 'Selected time slot is not available' });
         }
 
-        // Create the appointment
         const appointment = new Appointment({ doctorId, patientName, appointmentTime });
         await appointment.save();
 
-        // Remove the booked slot from the doctor's available slots
         doctor.availableSlots = doctor.availableSlots.filter(slot => slot !== appointmentTime);
         await doctor.save();
 
@@ -85,7 +92,7 @@ app.post('/appointments', async (req, res) => {
 });
 
 // Get all appointments
-app.get('/appointments', async (req, res) => {
+router.get('/appointments', async (req, res) => {
     try {
         const appointments = await Appointment.find().populate('doctorId');
         res.status(200).json(appointments);
@@ -95,7 +102,7 @@ app.get('/appointments', async (req, res) => {
 });
 
 // Update an appointment status
-app.put('/appointments/:id', async (req, res) => {
+router.put('/appointments/:id', async (req, res) => {
     try {
         const appointment = await Appointment.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
         if (!appointment) {
@@ -108,14 +115,13 @@ app.put('/appointments/:id', async (req, res) => {
 });
 
 // Cancel an appointment
-app.delete('/appointments/:id', async (req, res) => {
+router.delete('/appointments/:id', async (req, res) => {
     try {
         const appointment = await Appointment.findByIdAndDelete(req.params.id);
         if (!appointment) {
             return res.status(404).json({ message: 'Appointment not found' });
         }
 
-        // Restore the time slot back to the doctor's available slots
         const doctor = await Doctor.findById(appointment.doctorId);
         if (doctor) {
             doctor.availableSlots.push(appointment.appointmentTime);
@@ -128,5 +134,4 @@ app.delete('/appointments/:id', async (req, res) => {
     }
 });
 
-
-module.exports = app;
+module.exports = router;

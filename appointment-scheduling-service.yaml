@@ -9,4 +9,4 @@ spec:
   - protocol: TCP
     port: 82
     targetPort: 4001
-  type: ClusterIP
+  type: NodePort
