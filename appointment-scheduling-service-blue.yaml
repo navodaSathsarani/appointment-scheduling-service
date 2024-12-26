@@ -15,6 +15,13 @@ spec:
       containers:
       - name: appointment-scheduling-service
         image: gcr.io/healthsync-project-445302/appointment-scheduling-service:latest
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "128Mi"
+          requests:
+            cpu: "250m"
+            memory: "64Mi"
         ports:
         - containerPort: 4001
         livenessProbe: null
