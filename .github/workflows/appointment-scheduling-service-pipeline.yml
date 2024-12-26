@@ -48,8 +48,8 @@ jobs:
     # Step 8: Build and Push Docker Image
     - name: Build and Push Docker Image
       run: |
-        docker buildx build --platform linux/amd64 -t gcr.io/healthsync-project-445302/appointment-scheduling-service:${{ github.sha }} .
-        docker push gcr.io/healthsync-project-445302/appointment-scheduling-service:${{ github.sha }}
+        docker buildx build --platform linux/amd64 -t gcr.io/healthsync-project-445302/appointment-scheduling-service:latest .
+        docker push gcr.io/healthsync-project-445302/appointment-scheduling-service:latest
 
     - name: Install Gcloud components
       run: |
@@ -63,9 +63,9 @@ jobs:
     # Step 9: Deploy Green Deployment
     - name: Deploy Green Deployment
       run: |
-        sed -i "s|<IMAGE>|gcr.io/healthsync-project-445302/appointment-scheduling-service:${{ github.sha }}|g" appointment-scheduling-service-green.yaml
+        sed -i "s|<IMAGE>|gcr.io/healthsync-project-445302/appointment-scheduling-service:latest|g" appointment-scheduling-service-green.yaml
         kubectl apply -f appointment-scheduling-service-green.yaml
-        sed -i "s|<IMAGE>|gcr.io/healthsync-project-445302/appointment-scheduling-service:${{ github.sha }}|g" appointment-scheduling-service-blue.yaml
+        sed -i "s|<IMAGE>|gcr.io/healthsync-project-445302/appointment-scheduling-service:latest|g" appointment-scheduling-service-blue.yaml
         kubectl apply -f appointment-scheduling-service-blue.yaml
         kubectl apply -f appointment-scheduling-service.yaml
 
