@@ -19,6 +19,9 @@ const appointmentSchema = new mongoose.Schema({
     patientName: { type: String, required: true },
     appointmentTime: { type: String, required: true }, // ISO format
     status: { type: String, enum: ['Scheduled', 'Completed', 'Cancelled'], default: 'Scheduled' },
+    specialty: { type: String, required: true }, // Doctor's specialty (e.g., Cardiology, Dermatology)
+    symptoms: { type: [String], default: [] }, // List of symptoms reported by the patient
+    conditions: { type: [String], default: [] } // Diagnosed conditions, optional
 });
 
 const Doctor = mongoose.model('Doctor', doctorSchema);
@@ -79,27 +82,27 @@ router.get('/doctors', async (req, res) => {
 // Schedule an appointment
 router.post('/appointments', async (req, res) => {
     try {
-        const { doctorId, patientName, appointmentTime } = req.body;
+        const { doctorId, patientName, appointmentTime, specialty, symptoms, conditions } = req.body;
         const doctor = await Doctor.findById(doctorId);
-
         if (!doctor) {
             return res.status(404).json({ message: 'Doctor not found' });
         }
-
-        if (!doctor.availableSlots.includes(appointmentTime)) {
-            return res.status(400).json({ message: 'Selected time slot is not available' });
-        }
-
-        const appointment = new Appointment({ doctorId, patientName, appointmentTime });
+    
+        const appointment = new Appointment({
+            doctorId,
+            patientName,
+            appointmentTime,
+            specialty,
+            symptoms: symptoms || [], 
+            conditions: conditions || [] 
+        });
         await appointment.save();
-
-        doctor.availableSlots = doctor.availableSlots.filter(slot => slot !== appointmentTime);
-        await doctor.save();
-
+    
         res.status(201).json({ message: 'Appointment scheduled successfully', appointment });
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
+    
 });
 
 // Get all appointments
