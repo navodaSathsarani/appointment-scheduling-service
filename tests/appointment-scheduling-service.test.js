@@ -39,20 +39,30 @@ describe('Appointment API Endpoints', () => {
   });
 
   test('POST /api/v1/appointment-service/appointments - Schedule an appointment', async () => {
-      const response = await request(app)
-          .post('/api/v1/appointment-service/appointments')
-          .send({
-              doctorId: createdDoctorId,
-              patientName: 'John Doe',
-              appointmentTime: '2023-12-01T10:00'
-          });
+    const response = await request(app)
+        .post('/api/v1/appointment-service/appointments')
+        .send({
+            doctorId: createdDoctorId,
+            patientName: 'John Doe',
+            appointmentTime: '2023-12-01T10:00',
+            specialty: 'Cardiology',
+            symptoms: ['Chest pain', 'Shortness of breath'],
+            conditions: ['Hypertension']
+        });
 
-      expect(response.statusCode).toBe(201);
-      expect(response.body).toHaveProperty('message', 'Appointment scheduled successfully');
-      expect(response.body.appointment).toHaveProperty('_id');
-      expect(response.body.appointment.patientName).toBe('John Doe');
-      createdAppointmentId = response.body.appointment._id; // Save appointment ID for later tests
-  });
+    // Assertions
+    expect(response.statusCode).toBe(201);
+    expect(response.body).toHaveProperty('message', 'Appointment scheduled successfully');
+    expect(response.body.appointment).toHaveProperty('_id');
+    expect(response.body.appointment.patientName).toBe('John Doe');
+    expect(response.body.appointment.specialty).toBe('Cardiology');
+    expect(response.body.appointment.symptoms).toEqual(['Chest pain', 'Shortness of breath']);
+    expect(response.body.appointment.conditions).toEqual(['Hypertension']);
+
+    // Save appointment ID for later tests
+    createdAppointmentId = response.body.appointment._id;
+});
+
 
   test('GET /api/v1/appointment-service/appointments - Get all appointments', async () => {
       const response = await request(app).get('/api/v1/appointment-service/appointments');
