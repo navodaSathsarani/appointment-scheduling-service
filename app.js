@@ -14,15 +14,18 @@ const doctorSchema = new mongoose.Schema({
     availableSlots: { type: [String], required: true }, // Format: ['2023-12-01T10:00', '2023-12-01T11:00']
 });
 
-const appointmentSchema = new mongoose.Schema({
-    doctorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Doctor', required: true },
-    patientName: { type: String, required: true },
-    appointmentTime: { type: String, required: true }, // ISO format
-    status: { type: String, enum: ['Scheduled', 'Completed', 'Cancelled'], default: 'Scheduled' },
-    specialty: { type: String, required: true }, // Doctor's specialty (e.g., Cardiology, Dermatology)
-    symptoms: { type: [String], default: [] }, // List of symptoms reported by the patient
-    conditions: { type: [String], default: [] } // Diagnosed conditions, optional
-});
+const appointmentSchema = new mongoose.Schema(
+    {
+      doctorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Doctor', required: true },
+      patientName: { type: String, required: true },
+      appointmentTime: { type: String, required: true }, // ISO format
+      status: { type: String, enum: ['Scheduled', 'Completed', 'Cancelled'], default: 'Scheduled' },
+      specialty: { type: String, required: true },
+      symptoms: { type: [String], default: [] },
+      conditions: { type: [String], default: [] },
+    },
+    { timestamps: true } 
+  );
 
 const Doctor = mongoose.model('Doctor', doctorSchema);
 const Appointment = mongoose.model('Appointment', appointmentSchema);
